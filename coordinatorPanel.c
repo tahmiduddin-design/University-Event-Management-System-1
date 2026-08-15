@@ -1,11 +1,46 @@
 #include "coordinatorPanel.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-void facultyDashboard(char userID[]) {
+/* ================= INPUT FUNCTIONS ================= */
+
+void readString(char str[], int size)
+{
+    fgets(str, size, stdin);
+    str[strcspn(str, "\n")] = '\0';
+}
+
+int readInt()
+{
+    char input[50];
+    int value;
+
+    while (1)
+    {
+        fgets(input, sizeof(input), stdin);
+
+        if (sscanf(input, "%d", &value) == 1)
+        {
+            return value;
+        }
+
+        printf("Invalid input! Enter a number: ");
+    }
+}
+
+/* ================= FACULTY DASHBOARD ================= */
+
+void facultyDashboard(char userID[])
+{
     int choice;
-    while (1) {
+
+    while (1)
+    {
         printf("\n===========================================\n");
-        printf("          FACULTY PANEL (ID: %s)           \n", userID);
+        printf("          FACULTY PANEL (ID: %s)\n", userID);
         printf("===========================================\n");
+
         printf("1. Create New Event\n");
         printf("2. Edit Event Details\n");
         printf("3. Delete Event\n");
@@ -13,194 +48,599 @@ void facultyDashboard(char userID[]) {
         printf("5. Assign Rank & Certificate to Volunteer\n");
         printf("6. Issue Event Certificate to Student\n");
         printf("7. Logout\n");
+
         printf("-------------------------------------------\n");
         printf("Enter Choice: ");
-        if (scanf("%d", &choice) != 1) {
-            clearBuffer();
-            continue;
-        }
-        clearBuffer();
 
-        switch (choice) {
-            case 1: createEvent(); break;
-            case 2: editEvent(); break;
-            case 3: deleteEvent(); break;
-            case 4: markVolunteerAttendance(); break;
-            case 5: giveCertificateAndRankToVolunteer(); break;
-            case 6: issueCertificateToStudent(); break;
-            case 7: printf("\nLogging out from Faculty Panel...\n"); return;
-            default: printf("\nInvalid Choice! Try again.\n");
+        choice = readInt();
+
+        switch (choice)
+        {
+        case 1:
+            createEvent();
+            break;
+
+        case 2:
+            editEvent();
+            break;
+
+        case 3:
+            deleteEvent();
+            break;
+
+        case 4:
+            markVolunteerAttendance();
+            break;
+
+        case 5:
+            giveCertificateAndRankToVolunteer();
+            break;
+
+        case 6:
+            issueCertificateToStudent();
+            break;
+
+        case 7:
+            printf("\nLogging out from Faculty Panel...\n");
+            return;
+
+        default:
+            printf("\nInvalid Choice! Try again.\n");
         }
     }
 }
 
-void markVolunteerAttendance(void) {
-    FILE *fp = fopen("volunteer.txt", "r");
-    if (fp == NULL) {
-        printf("\nNo volunteers have participated yet.\n");
+/* ================= CREATE EVENT ================= */
+
+void createEvent(void)
+{
+    FILE *fp;
+    Event ev;
+
+    fp = fopen("events.txt", "a");
+
+    if (fp == NULL)
+    {
+        printf("\nError opening events.txt!\n");
         return;
     }
 
-    printf("\n=========================================================================\n");
-    printf("                  VOLUNTEER PARTICIPATION LIST                           \n");
-    printf("=========================================================================\n");
-    printf("%-12s | %-25s | %-10s | %s\n", "Volunteer ID", "Event Name", "Rank", "Current Status");
-    printf("-------------------------------------------------------------------------\n");
+    printf("\n===========================================\n");
+    printf("              CREATE NEW EVENT\n");
+    printf("===========================================\n");
+    printf("Enter 0 to go back.\n\n");
 
-    char id[30], eventName[50], rank[20], status[20];
-    int count = 0;
-    while (fscanf(fp, "%s \"%[^\"]\" %s %s", id, eventName, rank, status) != EOF) {
-        printf("%-12s | %-25s | %-10s | %s\n", id, eventName, rank, status);
-        count++;
-    }
-    fclose(fp);
+    printf("Enter Event ID: ");
+    ev.id = readInt();
 
-    if (count == 0) {
-        printf("No volunteer applications found.\n");
+    if (ev.id == 0)
+    {
+        fclose(fp);
         return;
     }
 
-    char targetID[30], targetEvent[50];
-    printf("\nEnter Volunteer ID to Mark Attendance: ");
-    scanf("%s", targetID);
-    clearBuffer();
+    printf("Enter Category: ");
+    readString(ev.category, sizeof(ev.category));
 
     printf("Enter Event Name: ");
-    scanf(" %[^\n]", targetEvent);
-    clearBuffer();
+    readString(ev.name, sizeof(ev.name));
 
-    int attChoice;
-    printf("\nSet Attendance:\n1. Present\n2. Absent\nChoice (1-2): ");
-    scanf("%d", &attChoice);
-    clearBuffer();
+    printf("Enter Date: ");
+    readString(ev.date, sizeof(ev.date));
 
-    char newStatus[20];
-    if (attChoice == 1) strcpy(newStatus, "Present");
-    else strcpy(newStatus, "Absent");
+    printf("Enter Time Slot: ");
+    readString(ev.time, sizeof(ev.time));
 
-    fp = fopen("volunteer.txt", "r");
-    FILE *temp = fopen("temp_volunteer.txt", "w");
+    printf("Enter Base Price: ");
+    ev.capacity = readInt();
+
+    printf("Enter Available Seats: ");
+    ev.availableSeats = readInt();
+
+    /*
+       Event data is stored using spaces.
+       So do not use spaces inside
+       Category, Event Name, Date or Time.
+    */
+
+    fprintf(fp, "%d %s %s %s %s %d %d\n",
+            ev.id,
+            ev.category,
+            ev.name,
+            ev.date,
+            ev.time,
+            ev.capacity,
+            ev.availableSeats);
+
+    fclose(fp);
+
+    printf("\n===========================================\n");
+    printf("       Event Created Successfully!\n");
+    printf("===========================================\n");
+}
+
+/* ================= EDIT EVENT ================= */
+
+void editEvent(void)
+{
+    FILE *fp;
+    FILE *temp;
+
+    char line[500];
+    int targetID;
     int found = 0;
 
-    while (fscanf(fp, "%s \"%[^\"]\" %s %s", id, eventName, rank, status) != EOF) {
-        if (strcmp(id, targetID) == 0 && strcmp(eventName, targetEvent) == 0) {
+    fp = fopen("events.txt", "r");
+
+    if (fp == NULL)
+    {
+        printf("\nNo events found!\n");
+        return;
+    }
+
+    printf("\n===========================================\n");
+    printf("                 EDIT EVENT\n");
+    printf("===========================================\n");
+    printf("Enter 0 to go back.\n\n");
+
+    printf("Enter Event ID to Edit: ");
+    targetID = readInt();
+
+    if (targetID == 0)
+    {
+        fclose(fp);
+        return;
+    }
+
+    temp = fopen("temp_events.txt", "w");
+
+    if (temp == NULL)
+    {
+        fclose(fp);
+        printf("\nError creating temporary file!\n");
+        return;
+    }
+
+    while (fgets(line, sizeof(line), fp) != NULL)
+    {
+        int currentID;
+
+        /* Get Event ID from current line */
+        if (sscanf(line, "%d", &currentID) != 1)
+        {
+            fprintf(temp, "%s", line);
+            continue;
+        }
+
+        /* If Event ID matches */
+        if (currentID == targetID)
+        {
+            Event ev;
+
             found = 1;
-            fprintf(temp, "%s \"%s\" %s %s\n", id, eventName, rank, newStatus);
-        } else {
-            fprintf(temp, "%s \"%s\" %s %s\n", id, eventName, rank, status);
+
+            printf("\n===========================================\n");
+            printf("               EVENT FOUND!\n");
+            printf("===========================================\n");
+
+            ev.id = targetID;
+
+            printf("Enter New Category: ");
+            readString(ev.category, sizeof(ev.category));
+
+            printf("Enter New Event Name: ");
+            readString(ev.name, sizeof(ev.name));
+
+            printf("Enter New Date: ");
+            readString(ev.date, sizeof(ev.date));
+
+            printf("Enter New Time Slot: ");
+            readString(ev.time, sizeof(ev.time));
+
+            printf("Enter New Base Price: ");
+            ev.capacity = readInt();
+
+            printf("Enter New Available Seats: ");
+            ev.availableSeats = readInt();
+
+            fprintf(temp,
+                    "%d %s %s %s %s %d %d\n",
+                    ev.id,
+                    ev.category,
+                    ev.name,
+                    ev.date,
+                    ev.time,
+                    ev.capacity,
+                    ev.availableSeats);
+        }
+        else
+        {
+            /* Keep other events unchanged */
+            fprintf(temp, "%s", line);
         }
     }
+
+    fclose(fp);
+    fclose(temp);
+
+    remove("events.txt");
+
+    if (rename("temp_events.txt", "events.txt") != 0)
+    {
+        printf("\nError updating events file!\n");
+        return;
+    }
+
+    if (found)
+    {
+        printf("\n===========================================\n");
+        printf("       EVENT UPDATED SUCCESSFULLY!\n");
+        printf("===========================================\n");
+    }
+    else
+    {
+        printf("\nEvent ID %d not found!\n", targetID);
+    }
+}
+
+/* ================= DELETE EVENT ================= */
+
+void deleteEvent(void)
+{
+    FILE *fp;
+    FILE *temp;
+
+    Event ev;
+    int targetID;
+    int deleted = 0;
+
+    fp = fopen("events.txt", "r");
+
+    if (fp == NULL)
+    {
+        printf("\nNo events found!\n");
+        return;
+    }
+
+    printf("\n===========================================\n");
+    printf("              DELETE EVENT\n");
+    printf("===========================================\n");
+    printf("Enter 0 to go back.\n\n");
+
+    printf("Enter Event ID to Delete: ");
+    targetID = readInt();
+
+    if (targetID == 0)
+    {
+        fclose(fp);
+        return;
+    }
+
+    temp = fopen("temp_events.txt", "w");
+
+    if (temp == NULL)
+    {
+        fclose(fp);
+        printf("\nError creating temporary file!\n");
+        return;
+    }
+
+    while (fscanf(fp,
+                  "%d %49s %49s %49s %49s %d %d",
+                  &ev.id,
+                  ev.category,
+                  ev.name,
+                  ev.date,
+                  ev.time,
+                  &ev.capacity,
+                  &ev.availableSeats) == 7)
+    {
+        if (ev.id == targetID)
+        {
+            deleted = 1;
+            continue;
+        }
+
+        fprintf(temp,
+                "%d %s %s %s %s %d %d\n",
+                ev.id,
+                ev.category,
+                ev.name,
+                ev.date,
+                ev.time,
+                ev.capacity,
+                ev.availableSeats);
+    }
+
+    fclose(fp);
+    fclose(temp);
+
+    remove("events.txt");
+    rename("temp_events.txt", "events.txt");
+
+    if (deleted)
+    {
+        printf("\n===========================================\n");
+        printf("       Event Deleted Successfully!\n");
+        printf("===========================================\n");
+    }
+    else
+    {
+        printf("\nEvent ID %d not found!\n", targetID);
+    }
+}
+
+/* ================= VOLUNTEER ATTENDANCE ================= */
+
+void markVolunteerAttendance(void)
+{
+    FILE *fp;
+    FILE *temp;
+
+    char id[30];
+    char eventName[50];
+    char rank[20];
+    char status[20];
+
+    char targetID[30];
+    char targetEvent[50];
+
+    int count = 0;
+    int found = 0;
+    int choice;
+
+    fp = fopen("volunteer.txt", "r");
+
+    if (fp == NULL)
+    {
+        printf("\nNo volunteer applications found!\n");
+        return;
+    }
+
+    printf("\n=====================================================================\n");
+    printf("                    VOLUNTEER PARTICIPATION LIST\n");
+    printf("=====================================================================\n");
+
+    printf("%-15s | %-25s | %-10s | %-10s\n",
+           "Volunteer ID",
+           "Event Name",
+           "Rank",
+           "Status");
+
+    printf("---------------------------------------------------------------------\n");
+
+    while (fscanf(fp,
+                  "%29s \"%49[^\"]\" %19s %19s",
+                  id,
+                  eventName,
+                  rank,
+                  status) == 4)
+    {
+        printf("%-15s | %-25s | %-10s | %-10s\n",
+               id,
+               eventName,
+               rank,
+               status);
+
+        count++;
+    }
+
+    fclose(fp);
+
+    if (count == 0)
+    {
+        printf("\nNo volunteer applications found!\n");
+        return;
+    }
+
+    printf("\nEnter 0 to go back.\n");
+
+    printf("\nEnter Volunteer ID: ");
+    readString(targetID, sizeof(targetID));
+
+    if (strcmp(targetID, "0") == 0)
+    {
+        return;
+    }
+
+    printf("Enter Event Name: ");
+    readString(targetEvent, sizeof(targetEvent));
+
+    printf("\n1. Present\n");
+    printf("2. Absent\n");
+    printf("0. Back\n");
+
+    printf("Enter Attendance Choice: ");
+    choice = readInt();
+
+    if (choice == 0)
+    {
+        return;
+    }
+
+    if (choice != 1 && choice != 2)
+    {
+        printf("\nInvalid attendance choice!\n");
+        return;
+    }
+
+    fp = fopen("volunteer.txt", "r");
+    temp = fopen("temp_volunteer.txt", "w");
+
+    if (fp == NULL || temp == NULL)
+    {
+        if (fp != NULL)
+            fclose(fp);
+
+        if (temp != NULL)
+            fclose(temp);
+
+        printf("\nFile error!\n");
+        return;
+    }
+
+    while (fscanf(fp,
+                  "%29s \"%49[^\"]\" %19s %19s",
+                  id,
+                  eventName,
+                  rank,
+                  status) == 4)
+    {
+        if (strcmp(id, targetID) == 0 &&
+            strcmp(eventName, targetEvent) == 0)
+        {
+            found = 1;
+
+            if (choice == 1)
+            {
+                strcpy(status, "Present");
+            }
+            else
+            {
+                strcpy(status, "Absent");
+            }
+        }
+
+        fprintf(temp,
+                "%s \"%s\" %s %s\n",
+                id,
+                eventName,
+                rank,
+                status);
+    }
+
     fclose(fp);
     fclose(temp);
 
     remove("volunteer.txt");
     rename("temp_volunteer.txt", "volunteer.txt");
 
-    if (found) {
-        printf("\nSuccess! Attendance updated to '%s' for Volunteer ID: %s.\n", newStatus, targetID);
-        FILE *fpNotif = fopen("volunteerCertificates.txt", "a");
-        if (fpNotif != NULL) {
-            fprintf(fpNotif, "%s \"Attendance for '%s': Marked as %s by Faculty.\"\n", targetID, targetEvent, newStatus);
-            fclose(fpNotif);
-        }
-    } else {
-        printf("\nVolunteer ID or Event Name not matched!\n");
+    if (found)
+    {
+        printf("\n===========================================\n");
+        printf("       Attendance Updated Successfully!\n");
+        printf("===========================================\n");
+
+        printf("Volunteer ID : %s\n", targetID);
+        printf("Event        : %s\n", targetEvent);
+
+        if (choice == 1)
+            printf("Status       : Present\n");
+        else
+            printf("Status       : Absent\n");
+    }
+    else
+    {
+        printf("\nVolunteer ID or Event Name not found!\n");
     }
 }
 
-void createEvent(void) {
-    FILE *fp = fopen("events.txt", "a");
-    if (fp == NULL) { printf("Error opening file!\n"); return; }
+/* ================= VOLUNTEER RANK + CERTIFICATE ================= */
 
-    Event ev;
-    printf("\n--- CREATE EVENT ---\n");
-    printf("Enter Event ID: "); scanf("%d", &ev.id); clearBuffer();
-    printf("Enter Category (Departmental/Club/Alumni): "); scanf("%s", ev.category); clearBuffer();
-    printf("Enter Event Name: "); scanf("%s", ev.name); clearBuffer();
-    printf("Enter Date: "); scanf("%s", ev.date); clearBuffer();
-    printf("Enter Time Slot: "); scanf("%s", ev.time); clearBuffer();
-    printf("Enter Base Price: "); scanf("%d", &ev.capacity); clearBuffer();
-    printf("Enter Fan Count needed: "); scanf("%d", &ev.availableSeats); clearBuffer();
+void giveCertificateAndRankToVolunteer(void)
+{
+    FILE *fp;
 
-    fprintf(fp, "%d %s %s %s %s %d %d\n", ev.id, ev.category, ev.name, ev.date, ev.time, ev.capacity, ev.availableSeats);
+    char vID[30];
+    char rank[20];
+
+    printf("\n===========================================\n");
+    printf("        VOLUNTEER RANK & CERTIFICATE\n");
+    printf("===========================================\n");
+
+    printf("Enter 0 to go back.\n\n");
+
+    printf("Enter Volunteer ID: ");
+    readString(vID, sizeof(vID));
+
+    if (strcmp(vID, "0") == 0)
+    {
+        return;
+    }
+
+    printf("Enter Rank (Gold/Silver/Bronze): ");
+    readString(rank, sizeof(rank));
+
+    if (strcmp(rank, "Gold") != 0 &&
+        strcmp(rank, "Silver") != 0 &&
+        strcmp(rank, "Bronze") != 0)
+    {
+        printf("\nInvalid Rank!\n");
+        printf("Please use Gold, Silver or Bronze.\n");
+        return;
+    }
+
+    fp = fopen("volunteerCertificates.txt", "a");
+
+    if (fp == NULL)
+    {
+        printf("\nError opening certificate file!\n");
+        return;
+    }
+
+    fprintf(fp,
+            "%s \"Rank: %s | Certificate Issued\"\n",
+            vID,
+            rank);
+
     fclose(fp);
-    printf("\nEvent Created Successfully!\n");
+
+    printf("\n===========================================\n");
+    printf("   Rank & Certificate Issued Successfully!\n");
+    printf("===========================================\n");
 }
 
-void editEvent(void) {
-    FILE *fp = fopen("events.txt", "r");
-    if (fp == NULL) { printf("\nNo events found.\n"); return; }
+/* ================= STUDENT CERTIFICATE ================= */
 
-    int targetID, found = 0;
-    printf("\nEnter Event ID to Edit: "); scanf("%d", &targetID); clearBuffer();
+void issueCertificateToStudent(void)
+{
+    FILE *fp;
 
-    FILE *temp = fopen("temp_events.txt", "w");
-    Event ev;
+    char studentID[30];
+    char eventName[50];
+    char issueDate[20];
 
-    while (fscanf(fp, "%d %s %s %s %s %d %d", &ev.id, ev.category, ev.name, ev.date, ev.time, &ev.capacity, &ev.availableSeats) != EOF) {
-        if (ev.id == targetID) {
-            found = 1;
-            printf("Enter New Category: "); scanf("%s", ev.category); clearBuffer();
-            printf("Enter New Name: "); scanf("%s", ev.name); clearBuffer();
-            printf("Enter New Date: "); scanf("%s", ev.date); clearBuffer();
-            printf("Enter New Time: "); scanf("%s", ev.time); clearBuffer();
-            printf("Enter New Base Price: "); scanf("%d", &ev.capacity); clearBuffer();
-        }
-        fprintf(temp, "%d %s %s %s %s %d %d\n", ev.id, ev.category, ev.name, ev.date, ev.time, ev.capacity, ev.availableSeats);
+    printf("\n===========================================\n");
+    printf("          STUDENT CERTIFICATE\n");
+    printf("===========================================\n");
+
+    printf("Enter 0 to go back.\n\n");
+
+    printf("Enter Student ID: ");
+    readString(studentID, sizeof(studentID));
+
+    if (strcmp(studentID, "0") == 0)
+    {
+        return;
     }
-    fclose(fp); fclose(temp);
-    remove("events.txt"); rename("temp_events.txt", "events.txt");
 
-    if (found) printf("\nEvent ID %d updated successfully!\n", targetID);
-    else printf("\nEvent ID %d not found!\n", targetID);
-}
+    printf("Enter Event Name: ");
+    readString(eventName, sizeof(eventName));
 
-void deleteEvent(void) {
-    FILE *fp = fopen("events.txt", "r");
-    if (fp == NULL) { printf("\nNo events found.\n"); return; }
+    printf("Enter Issue Date (DD-MM-YYYY): ");
+    readString(issueDate, sizeof(issueDate));
 
-    int targetID, deleted = 0;
-    printf("\nEnter Event ID to Delete: "); scanf("%d", &targetID); clearBuffer();
+    fp = fopen("certificate.txt", "a");
 
-    FILE *temp = fopen("temp_events.txt", "w");
-    Event ev;
-
-    while (fscanf(fp, "%d %s %s %s %s %d %d", &ev.id, ev.category, ev.name, ev.date, ev.time, &ev.capacity, &ev.availableSeats) != EOF) {
-        if (ev.id == targetID) { deleted = 1; continue; }
-        fprintf(temp, "%d %s %s %s %s %d %d\n", ev.id, ev.category, ev.name, ev.date, ev.time, ev.capacity, ev.availableSeats);
+    if (fp == NULL)
+    {
+        printf("\nError opening certificate.txt!\n");
+        return;
     }
-    fclose(fp); fclose(temp);
-    remove("events.txt"); rename("temp_events.txt", "events.txt");
 
-    if (deleted) printf("\nEvent ID %d deleted successfully!\n", targetID);
-    else printf("\nEvent ID %d not found!\n", targetID);
-}
+    fprintf(fp,
+            "%s \"%s\" %s\n",
+            studentID,
+            eventName,
+            issueDate);
 
-void giveCertificateAndRankToVolunteer(void) {
-    char vID[30], rank[20];
-    printf("\n--- RANK & CERTIFICATE ISSUANCE (VOLUNTEER) ---\n");
-    printf("Enter Volunteer ID: "); scanf("%s", vID); clearBuffer();
-    printf("Enter Rank (Gold/Silver/Bronze): "); scanf("%s", rank); clearBuffer();
+    fclose(fp);
 
-    FILE *fp = fopen("volunteerCertificates.txt", "a");
-    if (fp != NULL) {
-        fprintf(fp, "%s \"You received rank %s and a Certificate for your service!\"\n", vID, rank);
-        fclose(fp);
-        printf("\nCertificate & Rank notification sent to Volunteer ID: %s!\n", vID);
-    }
-}
+    printf("\n===========================================\n");
+    printf("     Certificate Issued Successfully!\n");
+    printf("===========================================\n");
 
-void issueCertificateToStudent(void) {
-    char sID[30], eventName[50], issueDate[20];
-    printf("\n--- ISSUE CERTIFICATE TO STUDENT ---\n");
-    printf("Enter Student ID: "); scanf("%s", sID); clearBuffer();
-    printf("Enter Event Name: "); scanf(" %[^\n]", eventName); clearBuffer();
-    printf("Enter Issue Date (DD-MM-YYYY): "); scanf("%s", issueDate); clearBuffer();
-
-    FILE *fp = fopen("certificate.txt", "a");
-    if (fp != NULL) {
-        fprintf(fp, "%s \"%s\" %s\n", sID, eventName, issueDate);
-        fclose(fp);
-        printf("\nCertificate issued successfully for Student ID: %s!\n", sID);
-    }
+    printf("Student ID : %s\n", studentID);
+    printf("Event      : %s\n", eventName);
+    printf("Issue Date : %s\n", issueDate);
 }

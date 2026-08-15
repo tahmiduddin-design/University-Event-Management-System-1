@@ -1,141 +1,299 @@
-#include "common.h"
-#include "menu.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-void clearBuffer() {
+#include "common.h"
+#include "adminPanel.h"
+#include "md5.h"
+#include "coordinatorPanel.h"
+
+/* Dashboard functions */
+void studentDashboard(char userID[]);
+void volunteerDashboard(char userID[]);
+
+/* User functions */
+void registerUser(void);
+void loginUser(void);
+
+
+/* ================= CLEAR BUFFER ================= */
+
+void clearBuffer(void)
+{
     int c;
-    while ((c = getchar()) != '\n' && c != EOF);
+
+    while ((c = getchar()) != '\n' && c != EOF)
+    {
+        /* Clear input buffer */
+    }
 }
 
-void showMainMenu() {
+
+/* ================= MAIN MENU ================= */
+
+void showMainMenu(void)
+{
     int choice;
-    while (1) {
+
+    while (1)
+    {
         printf("\n===========================================\n");
-        printf("    UNIVERSITY EVENT MANAGEMENT SYSTEM     \n");
+        printf("      UNIVERSITY EVENT MANAGEMENT SYSTEM   \n");
         printf("===========================================\n");
         printf("1. Register\n");
         printf("2. Login\n");
         printf("3. Exit\n");
         printf("-------------------------------------------\n");
         printf("Enter Choice: ");
-        
-        if (scanf("%d", &choice) != 1) {
+
+        if (scanf("%d", &choice) != 1)
+        {
             clearBuffer();
-            printf("\nInvalid Choice! Try again.\n");
+            printf("\nInvalid input! Please enter a number.\n");
             continue;
         }
+
         clearBuffer();
 
-        switch (choice) {
-            case 1: registerUser(); break;
-            case 2: loginUser(); break;
+        switch (choice)
+        {
+            case 1:
+                registerUser();
+                break;
+
+            case 2:
+                loginUser();
+                break;
+
             case 3:
                 printf("\nExiting System. Goodbye!\n");
                 exit(0);
-            default: printf("\nInvalid Choice!\n");
+
+            default:
+                printf("\nInvalid Choice! Please try again.\n");
         }
     }
 }
 
-void registerUser() {
-    FILE *fp = fopen("registration.txt", "a");
-    if (fp == NULL) {
-        printf("File opening error!\n");
+
+/* ================= REGISTER USER ================= */
+
+void registerUser(void)
+{
+    FILE *fp;
+    User u;
+
+    char hashedPassword[33];
+
+    fp = fopen("registration.txt", "a");
+
+    if (fp == NULL)
+    {
+        printf("\nError opening registration.txt!\n");
         return;
     }
 
-    User u;
     printf("\n===========================================\n");
     printf("             USER REGISTRATION             \n");
     printf("===========================================\n");
-    printf("Select Role:\n1. Student\n2. Volunteer\n");
+
+    printf("1. Student\n");
+    printf("2. Volunteer\n");
     printf("-------------------------------------------\n");
-    printf("Enter Role (1-2): ");
-    
-    if (scanf("%d", &u.role) != 1) {
+    printf("Enter Role: ");
+
+    if (scanf("%d", &u.role) != 1)
+    {
         clearBuffer();
         printf("\nInvalid input!\n");
         fclose(fp);
         return;
     }
+
     clearBuffer();
 
-    if (u.role < 1 || u.role > 2) {
-        printf("\nInvalid Role selected!\n");
+    /* Check role */
+    if (u.role != 1 && u.role != 2)
+    {
+        printf("\nInvalid Role! Please select 1 or 2.\n");
         fclose(fp);
         return;
     }
 
     printf("Enter ID: ");
-    scanf("%s", u.id); clearBuffer();
+    scanf("%19s", u.id);
+    clearBuffer();
 
     printf("Enter Full Name: ");
-    scanf("%s", u.name); clearBuffer();
+    scanf("%49s", u.name);
+    clearBuffer();
 
     printf("Enter Department: ");
-    scanf("%s", u.dept); clearBuffer();
+    scanf("%29s", u.dept);
+    clearBuffer();
 
     printf("Enter Phone Number: ");
-    scanf("%s", u.phone); clearBuffer();
+    scanf("%19s", u.phone);
+    clearBuffer();
 
     printf("Enter Password: ");
-    scanf("%s", u.password); clearBuffer();
+    scanf("%49s", u.password);
+    clearBuffer();
 
-    fprintf(fp, "%s %s %s %s %s %d\n", u.id, u.name, u.dept, u.phone, u.password, u.role);
+
+    /* ================= MD5 HASH ================= */
+
+    md5(u.password, hashedPassword);
+
+
+    /* ================= SAVE USER ================= */
+
+    fprintf(fp,
+            "%s %s %s %s %s %d\n",
+            u.id,
+            u.name,
+            u.dept,
+            u.phone,
+            hashedPassword,
+            u.role);
+
     fclose(fp);
 
-    printf("\nRegistration Successful! You can now log in.\n");
+
+    printf("\n===========================================\n");
+    printf("       REGISTRATION SUCCESSFUL!\n");
+    printf("===========================================\n");
+    printf("Account created successfully.\n");
+    printf("You can now login.\n");
 }
 
-void loginUser() {
-    char inputID[20], pass[30];
+
+/* ================= LOGIN USER ================= */
+
+void loginUser(void)
+{
+    char inputID[20];
+    char password[50];
+    char hashedPassword[33];
 
     printf("\n===========================================\n");
     printf("                USER LOGIN                 \n");
     printf("===========================================\n");
+
     printf("Enter ID: ");
-    scanf("%s", inputID); clearBuffer();
+    scanf("%19s", inputID);
+    clearBuffer();
 
     printf("Enter Password: ");
-    scanf("%s", pass); clearBuffer();
+    scanf("%49s", password);
+    clearBuffer();
 
-    // 1. Direct Default Admin Login Check
-    if (strcmp(inputID, "admin") == 0 && strcmp(pass, "admin123") == 0) {
-        printf("\nLogin Successful! Welcome, System Administrator.\n");
+
+    /* ================= DEFAULT ADMIN ================= */
+
+    if (strcmp(inputID, "admin") == 0 &&
+        strcmp(password, "admin123") == 0)
+    {
+        printf("\nLogin Successful!\n");
+        printf("Welcome, System Administrator.\n");
+
         adminDashboard("admin");
+
         return;
     }
 
-    // 2. Direct Default Faculty Login Check
-    if (strcmp(inputID, "faculty") == 0 && strcmp(pass, "faculty123") == 0) {
-        printf("\nLogin Successful! Welcome, Faculty Member.\n");
+
+    /* ================= DEFAULT FACULTY ================= */
+
+    if (strcmp(inputID, "faculty") == 0 &&
+        strcmp(password, "faculty123") == 0)
+    {
+        printf("\nLogin Successful!\n");
+        printf("Welcome, Faculty Member.\n");
+
         facultyDashboard("faculty");
+
         return;
     }
 
-    // 3. Check Registered Students and Volunteers from File
+
+    /* ================= HASH PASSWORD ================= */
+
+    md5(password, hashedPassword);
+
+
+    /* ================= OPEN USER FILE ================= */
+
     FILE *fp = fopen("registration.txt", "r");
-    if (fp == NULL) {
-        printf("\nNo registered users found or invalid credentials!\n");
+
+    if (fp == NULL)
+    {
+        printf("\nNo registered users found!\n");
         return;
     }
+
 
     User u;
     int found = 0;
 
-    while (fscanf(fp, "%s %s %s %s %s %d", u.id, u.name, u.dept, u.phone, u.password, &u.role) != EOF) {
-        if (strcmp(inputID, u.id) == 0 && strcmp(pass, u.password) == 0) {
+
+    /* ================= SEARCH USER ================= */
+
+    while (fscanf(fp,
+                  "%19s %49s %29s %19s %49s %d",
+                  u.id,
+                  u.name,
+                  u.dept,
+                  u.phone,
+                  u.password,
+                  &u.role) == 6)
+    {
+        /*
+           Compare:
+           1. User ID
+           2. MD5 hashed password
+        */
+
+        if (strcmp(inputID, u.id) == 0 &&
+            strcmp(hashedPassword, u.password) == 0)
+        {
             found = 1;
             break;
         }
     }
+
     fclose(fp);
 
-    if (found == 1) {
-        printf("\nLogin Successful! Welcome, %s (%s).\n", u.name, u.id);
 
-        if (u.role == 1) studentDashboard(u.id);
-        else if (u.role == 2) volunteerDashboard(u.id);
-    } else {
-        printf("\nInvalid ID or Password!\n");
+    /* ================= LOGIN RESULT ================= */
+
+    if (found)
+    {
+        printf("\n===========================================\n");
+        printf("            LOGIN SUCCESSFUL!\n");
+        printf("===========================================\n");
+
+        printf("Welcome, %s!\n", u.name);
+
+
+        /* Student */
+        if (u.role == 1)
+        {
+            studentDashboard(u.id);
+        }
+
+        /* Volunteer */
+        else if (u.role == 2)
+        {
+            volunteerDashboard(u.id);
+        }
+    }
+
+    else
+    {
+        printf("\n===========================================\n");
+        printf("             LOGIN FAILED!\n");
+        printf("===========================================\n");
+        printf("Invalid ID or Password!\n");
     }
 }

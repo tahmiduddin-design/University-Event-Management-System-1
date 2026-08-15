@@ -1,1 +1,10 @@
-11 Musical Contest 24-35-29 12 0.00
+1 Departmental CSEFest2026 15-09-2026 09:00AM-11:00AM 500 50
+2 Club ProgrammingContest 16-09-2026 10:00AM-01:00PM 300 80
+3 Club RoboticsWorkshop 18-09-2026 02:00PM-04:00PM 200 60
+4 Departmental TechSeminar 19-09-2026 09:00AM-06:00PM 400 100
+5 Club CulturalFest 21-09-2026 04:00PM-08:00PM 300 119
+6 Alumni AlumniReunion 22-09-2026 10:00AM-04:00PM 500 150
+7 Club SportsTournament 24-09-2026 09:00AM-05:00PM 250 80
+8 Departmental OrientationProgram 25-09-2026 10:00AM-12:00PM 100 200
+9 Alumni Convocation 27-09-2026 09:00AM-02:00PM 1000 300
+10 Departmental FoundationDay 28-09-2026 10:00AM-06:00PM 200 499
